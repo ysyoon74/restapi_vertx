@@ -1,0 +1,67 @@
+-DRestAPI_Server
+-Dlogback.configurationFile=logback.xml
+-Djava.net.preferIPv4Stack=true
+-Dhazelcast.logging.type=slf4j
+-Dhazelcast.max.no.heartbeat.seconds=5
+-Dvertx.disableDnsResolver=true
+-Dio.netty.tryReflectionSetAccessible=true
+# 'cannot access class jdk.internal.misc.Unsafe' 오류 메시지가 나올 경우. 주로 JDK 9이상일 경우 발생.
+#--add-opens java.base/jdk.internal.misc=ALL-UNNAMED
+
+#JVM Setting
+-XX:+UseThreadPriorities
+-XX:ThreadPriorityPolicy=42
+-XX:+HeapDumpOnOutOfMemoryError
+-Xss256k
+-XX:StringTableSize=1000003
+-XX:+AlwaysPreTouch
+-XX:-UseBiasedLocking
+-XX:+UseTLAB
+-XX:+ResizeTLAB
+-XX:+UseNUMA
+-XX:+ExitOnOutOfMemoryError
+-XX:+CrashOnOutOfMemoryError
+-server
+-XX:+PerfDisableSharedMem
+
+# HEAP SETTINGS
+-Xms1G
+-Xmx1G
+
+# GC Setting
+# Heap 기준 10GB 이상이면 G1GC, 이하면 Concurrent Mark Sweep (CMS)
+#-XX:+UseG1GC
+#-XX:G1RSetUpdatingPauseTimePercent=5
+#-XX:MaxGCPauseMillis=500
+#-XX:InitiatingHeapOccupancyPercent=70
+#-XX:ParallelGCThreads=8
+#-XX:ConcGCThreads=8
+#-XX:MetaspaceSize=1024M
+#-XX:MaxMetaspaceSize=2048M
+
+-XX:+UseParNewGC
+-XX:+UseConcMarkSweepGC
+-XX:+CMSParallelRemarkEnabled
+-XX:SurvivorRatio=8
+-XX:MaxTenuringThreshold=1
+-XX:CMSInitiatingOccupancyFraction=75
+-XX:+UseCMSInitiatingOccupancyOnly
+-XX:CMSWaitDuration=10000
+-XX:+CMSParallelInitialMarkEnabled
+-XX:+CMSEdenChunksRecordAlways
+-XX:+CMSClassUnloadingEnabled
+
+# GC logging
+-XX:+PrintGCDetails
+-XX:+PrintGCDateStamps
+-XX:+PrintHeapAtGC
+-XX:+PrintTenuringDistribution
+-XX:+PrintGCApplicationStoppedTime
+-XX:+PrintPromotionFailure
+-XX:PrintFLSStatistics=1
+-Xloggc:./logs/gc_restapi.log
+-XX:+UseGCLogFileRotation
+-XX:NumberOfGCLogFiles=10
+-XX:GCLogFileSize=10M
+
+

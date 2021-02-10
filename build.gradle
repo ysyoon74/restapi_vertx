@@ -1,0 +1,169 @@
+plugins {
+    id 'java-library'
+	id 'eclipse'
+	id "org.sonarqube" version "3.0"
+	id "io.freefair.lombok" version "5.3.0"
+}
+
+ext {
+	title = 'RestAPI based on Vertx'
+	author = 'Martin Yoon'
+	copyright = 'Martin'
+	baseName = 'restapi_vertx'
+	slf4j_version = '1.7.30'
+	logback_version = '1.2.3'
+	gson_version = '2.8.6'
+	guava_version = '30.1-jre'
+	commons_lang3_version = '3.11'
+	commons_text_version = '1.9'
+	commons_io_version = '2.8.0'
+	commons_beanutils_version = '1.9.4'
+	vertix_version = '4.0.2'
+	micrometer_version = '1.6.3'
+	jackson_version= '2.12.1'
+	spring_version = '5.3.3'
+}
+
+group = 'u.cando.restapi'
+version = '20210209'
+
+description = "RestAPI based on Vertx"
+
+compileJava.options.encoding = 'UTF-8'
+compileTestJava.options.encoding = 'UTF-8'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+	maven {
+		url 'http://maven.geotoolkit.org/'
+	}
+	maven {
+		url 'http://download.osgeo.org/webdav/geotools/'
+	}
+	mavenCentral()
+	maven {
+		url 'http://oss.jfrog.org/artifactory/oss-snapshot-local/'
+		allowInsecureProtocol true
+	}
+    google()
+    jcenter()
+}
+
+dependencies {
+	api "org.slf4j:slf4j-api:$slf4j_version"
+	api "ch.qos.logback:logback-core:$logback_version"
+	api ("ch.qos.logback:logback-classic:$logback_version")
+	{
+		exclude group : 'junit', module : 'junit'
+		exclude group : 'org.slf4j', module : 'slf4j-log4j12'
+		exclude group : 'commons-logging', module : 'commons-logging'
+	}
+
+	api "com.google.code.gson:gson:$gson_version"
+
+	api "com.google.guava:guava:$guava_version"
+	
+	api "org.apache.commons:commons-lang3:$commons_lang3_version"
+	api "org.apache.commons:commons-text:$commons_text_version"
+	api "commons-io:commons-io:$commons_io_version"
+	api "commons-beanutils:commons-beanutils:$commons_beanutils_version"
+	
+	api "io.vertx:vertx-web:$vertix_version"
+	api "io.vertx:vertx-hazelcast:$vertix_version"
+	api "io.vertx:vertx-micrometer-metrics:$vertix_version"
+	api "io.micrometer:micrometer-registry-prometheus:$micrometer_version"
+	api "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jackson_version"
+	api "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
+
+	api "org.springframework:spring-core:$spring_version"
+
+	api fileTree(dir: 'lib_local', include: '*.jar')
+//	api fileTree(dir: 'lib', include: '*.jar')
+
+	testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.1'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+sourceSets {
+    main.java.srcDirs=['src/main/java']
+    main.resources.srcDirs=['src/main/resources']
+}
+
+sonarqube {
+    properties {
+        property "sonar.sourceEncoding", "UTF-8"
+    }
+}
+
+tasks.withType(JavaCompile) {
+  options.compilerArgs << "-Xlint:unchecked" << "-Werror"
+}
+
+tasks.withType(Javadoc) {
+	options.addStringOption('charset', 'UTF-8')
+    options.encoding = 'UTF-8'
+}
+
+task copyToLib(type: Copy) {
+    into "lib"
+    from project.configurations.runtimeClasspath
+}
+
+jar {
+	manifest {
+		attributes 'Title': "$title",
+				   'Version': "$version",
+				   'Author' : "$author",
+				   'Copyright' : "$copyright"
+	}
+}
+	
+task copyCompiledJar(type: Copy) {
+	dependsOn tasks.jar
+	
+	from ("build/libs")
+	
+	into file("lib_bin") 
+}
+
+task deployProject(type: Copy) {
+	dependsOn tasks.clean
+	dependsOn tasks.copyCompiledJar
+	dependsOn tasks.copyToLib
+	
+	from ("./") {
+		include '**/*'
+	}
+	
+	mkdir "logs"
+	
+	into file("build/target/$baseName")
+	
+	includeEmptyDirs = false
+}
+
+task packageDistribution(type: Tar) {
+	dependsOn tasks.deployProject
+	
+	archiveName "$baseName" + '.tar'
+	
+	from ("build/target/$baseName") {
+		include '*/**'
+	}
+	
+	destinationDirectory = file('build/target')
+}
+
+sonarqube {
+	properties {
+		property 'sonar.projectKey', 'restapi_vertx'
+		property 'sonar.projectName', 'restapi_vertx'
+		property 'sonar.sourceEncoding', 'UTF-8'
+	}
+}

@@ -1,0 +1,14 @@
+{
+	"http.port": 8080,
+	"file-uploads": "./file-uploads",
+	"access-controll-allow-origin": "http://127.0.0.1:8080",
+	"dev-mode": true,
+	"use-cache": true,
+	"cluster-mode": true,
+	"vertx.options": {
+		"blockedThreadCheckInterval": 300000,
+		"workerPoolSize": 200,
+		"maxWorkerExecuteTime": 300000000000,
+		"haEnabled": true
+	}
+}

@@ -1,0 +1,4 @@
+services:
+- blockable: false
+  serviceUrl: "/api/simple"
+  targetHandler: "u.cando.restapi.controller.SimpleController"
