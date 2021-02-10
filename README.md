@@ -1,2 +1,2 @@
 # restapi_vertx
-RestAPI based on Vertx
+Vertx(https://vertx.io/) 기반 
