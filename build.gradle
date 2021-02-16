@@ -102,7 +102,7 @@ sonarqube {
 }
 
 tasks.withType(JavaCompile) {
-  options.compilerArgs << "-Xlint:unchecked" << "-Werror"
+  options.compilerArgs << "-Xlint:unchecked" << "-Werror" << "-Xlint:deprecation"
 }
 
 tasks.withType(Javadoc) {
