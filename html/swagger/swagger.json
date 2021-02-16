@@ -65,13 +65,17 @@
 						}
 					}
 				},
-				"cachedValue": {
-					"type": "boolean",
-					"description": "결과를 캐시에서 가져오는지 여부."
+				"callback": {
+					"type": "string",
+					"description": "JSONP 방식의 콜백 함수명."
 				},
 				"processTime": {
 					"type": "string",
 					"description": "수행시간(HH:mm:ss.S)"
+				},
+				"remoteAddress": {
+					"type": "string",
+					"description": "호출 주소."
 				},
 				"requestId": {
 					"type": "string",
@@ -91,6 +95,10 @@
 				"success": {
 					"type": "boolean",
 					"description": "처리 결과 성공 여부."
+				},
+				"valueCached": {
+					"type": "boolean",
+					"description": "결과를 캐시에서 가져오는지 여부."
 				}
 			}
 		}
