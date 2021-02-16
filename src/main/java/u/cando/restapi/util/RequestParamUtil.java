@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
@@ -162,21 +163,16 @@ public class RequestParamUtil
 				params = MultiMap.caseInsensitiveMultiMap();
 			}
 
-			try
+			HttpServerRequest request = routingContext.request();
+			
+			MultiMap formMap = request.formAttributes();
+			
+			if (!formMap.isEmpty())
 			{
-				@SuppressWarnings("unchecked")
-				Map<String, String> formData = new Gson().fromJson(routingContext.getBodyAsString("UTF-8"), HashMap.class);
-
-				if (formData != null)
+				for (Entry<String, String> oneEntry : formMap.entries())
 				{
-					for (Entry<String, String> oneEntry : formData.entrySet())
-					{
-						params.add(oneEntry.getKey(), oneEntry.getValue());
-					}
+					params.add(oneEntry.getKey(), oneEntry.getValue());
 				}
-			} catch (JsonSyntaxException e)
-			{
-				log.error(e.getMessage());
 			}
 		}
 
