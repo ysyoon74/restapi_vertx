@@ -103,7 +103,10 @@ public class RestApiBeforeHandler implements Handler<RoutingContext>
 
 			result = cachedMap.get(identifier);
 
-			log.debug("Result from : Cache({})", identifier);
+			if (log.isDebugEnabled() && result != null)
+			{
+				log.debug("Result from : Cache({})", identifier);
+			}
 		}
 
 		if (result != null)
@@ -123,9 +126,12 @@ public class RestApiBeforeHandler implements Handler<RoutingContext>
 			{
 				Map<String, String> cachedMap = instance.getMap(RestApiConstants.CACHE_MAP_NAME);
 
-				result = cachedMap.put(identifier, cachedValue);
+				if (cachedMap != null)
+				{
+					result = cachedMap.put(identifier, cachedValue);
 
-				log.debug("Cache[{}] is added.", identifier);
+					log.debug("Cache[{}] is added.", identifier);
+				}
 			}
 
 			if (BooleanUtils.toBoolean(response.getUseJsonp()))
