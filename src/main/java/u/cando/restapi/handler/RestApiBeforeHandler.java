@@ -44,8 +44,107 @@ public class RestApiBeforeHandler implements Handler<RoutingContext>
 		this.config = config;
 	}
 
+	/**
+	 * 캐시에서 정보 가져오기
+	 * 
+	 * @param identifier
+	 * @param instance
+	 * @return
+	 */
+	private Object fetchFromCache(String identifier)
+	{
+		HazelcastInstance instance = Hazelcast.getHazelcastInstanceByName(RestApiConstants.CACHE_INSTANCE_NAME);
+
+		if (Boolean.TRUE.equals(config.getBoolean(RestApiConstants.CONFIG_USE_CACHE, true)) && instance != null)
+		{
+			Map<String, Object> cachedMap = instance.getMap(RestApiConstants.CACHE_MAP_NAME);
+
+			return cachedMap.get(identifier);
+		}
+
+		return null;
+	}
+
 	@Override
 	public void handle(RoutingContext routingContext)
+	{
+		logRequestInfo(routingContext);
+
+		String identifier = RequestParamUtil.generateIdentifier(routingContext);
+
+		Object result = fetchFromCache(identifier);
+
+		if (result != null)
+		{
+			Gson gson = new GsonBuilder().create();
+
+			Response response = gson.fromJson((String) result, Response.class);
+
+			response.setRequestId(routingContext.session().id());
+			response.setRemoteAddress(routingContext.request().host());
+			response.setValueCached(true);
+			response.setProcessTime(0L);
+
+			String cachedValue = Json.encodePrettily(response);
+
+			pushToCache(result, identifier);
+
+			if (BooleanUtils.toBoolean(response.getUseJsonp()))
+			{
+				if (StringUtils.isNotBlank(response.getCallback()))
+				{
+					result = response.getCallback() + "( " + result + " )";
+				} else
+				{
+					result = "callback( " + result + " )";
+				}
+			} else
+			{
+				result = cachedValue;
+			}
+
+			if (Boolean.TRUE.equals(config.getBoolean(RestApiConstants.CONFIG_DEV_MODE, false)))
+			{
+				routingContext.response().putHeader("Content-Type", "application/json").putHeader("Access-Control-Allow-Origin", "*")
+						.putHeader("Access-Control-Allow-Methods", "GET,POST,OPTION").putHeader("Access-Control-Max-Age", "3600")
+						.putHeader("Access-Control-Allow-Headers",
+								"Origin,Accept,X-Requested-With,Content-Type,Access-Control-Request-Method,Access-Control-Request-Headers,Authorization")
+						.end((String) result);
+			} else
+			{
+				String accessControlAllowOrigin = config.getString("access-control-allow-origin", "http://127.0.0.1");
+
+				routingContext.response().putHeader("Content-Type", "application/json")
+						.putHeader("Access-Control-Allow-Origin", accessControlAllowOrigin)
+						.putHeader("Access-Control-Allow-Methods", "GET,POST,OPTION").putHeader("Access-Control-Max-Age", "3600")
+						.putHeader("Access-Control-Allow-Headers",
+								"Origin,Accept,X-Requested-With,Content-Type,Access-Control-Request-Method,Access-Control-Request-Headers,Authorization")
+						.putHeader("Access-Control-Allow-Credentials", "true").end((String) result);
+			}
+		} else
+		{
+			try (InputStream is = new FileInputStream(new File("./html/swagger/swagger.json"));)
+			{
+				String swaggerConf = IOUtils.toString(is, StandardCharsets.UTF_8);
+
+				JsonObject swagger = new JsonObject(swaggerConf);
+
+				routingContext.put("swagger", swagger);
+			} catch (IOException e)
+			{
+				log.error(e.getMessage());
+			}
+
+			routingContext.next();
+		}
+	}
+
+	/**
+	 * Request 정보 로그에 기록하기
+	 * 
+	 * @param routingContext
+	 */
+	private void logRequestInfo(RoutingContext routingContext)
 	{
 		String remoteAddress = "";
 
@@ -90,103 +189,25 @@ public class RestApiBeforeHandler implements Handler<RoutingContext>
 
 			log.debug("config : {}", config.toString());
 		}
+	}
 
-		String identifier = RequestParamUtil.generateIdentifier(routingContext);
-
+	/**
+	 * 캐시에 저장하기
+	 * 
+	 * @param result
+	 * @param identifier
+	 */
+	private void pushToCache(Object result, String identifier)
+	{
 		HazelcastInstance instance = Hazelcast.getHazelcastInstanceByName(RestApiConstants.CACHE_INSTANCE_NAME);
 
-		Object result = null;
-
-		if (Boolean.TRUE.equals(config.getBoolean(RestApiConstants.CONFIG_USE_CACHE, true)) && instance != null)
+		if (instance != null && Boolean.TRUE.equals(config.getBoolean(RestApiConstants.CONFIG_USE_CACHE, true)))
 		{
-			Map<String, String> cachedMap = instance.getMap(RestApiConstants.CACHE_MAP_NAME);
+			Map<String, Object> cachedMap = instance.getMap(RestApiConstants.CACHE_MAP_NAME);
 
-			result = cachedMap.get(identifier);
+			cachedMap.put(identifier, result);
 
-			if (log.isDebugEnabled() && result != null)
-			{
-				log.debug("Result from : Cache({})", identifier);
-			}
-		}
-
-		if (result != null)
-		{
-			Gson gson = new GsonBuilder().create();
-
-			Response response = gson.fromJson((String) result, Response.class);
-
-			response.setRequestId(routingContext.session().id());
-			response.setRemoteAddress(remoteAddress);
-			response.setValueCached(true);
-			response.setProcessTime(0L);
-
-			String cachedValue = Json.encodePrettily(response);
-
-			if (Boolean.TRUE.equals(config.getBoolean(RestApiConstants.CONFIG_USE_CACHE, true)))
-			{
-				Map<String, String> cachedMap = instance.getMap(RestApiConstants.CACHE_MAP_NAME);
-
-				if (cachedMap != null)
-				{
-					result = cachedMap.put(identifier, cachedValue);
-
-					log.debug("Cache[{}] is added.", identifier);
-				}
-			}
-
-			if (BooleanUtils.toBoolean(response.getUseJsonp()))
-			{
-				if (StringUtils.isNotBlank(response.getCallback()))
-				{
-					result = response.getCallback() + "( " + result + " )";
-				} else
-				{
-					result = "callback( " + result + " )";
-				}
-			} else
-			{
-				result = cachedValue;
-			}
-
-			if (Boolean.TRUE.equals(config.getBoolean(RestApiConstants.CONFIG_DEV_MODE, false)))
-			{
-				routingContext.response().putHeader("Content-Type", "application/json").putHeader("Access-Control-Allow-Origin", "*")
-						.putHeader("Access-Control-Allow-Methods", "GET,POST,OPTION").putHeader("Access-Control-Max-Age", "3600")
-						.putHeader("Access-Control-Allow-Headers",
-								"Origin,Accept,X-Requested-With,Content-Type,Access-Control-Request-Method,Access-Control-Request-Headers,Authorization")
-						.end((String) result);
-			} else
-			{
-				String accessControlAllowOrigin = config.getString("access-control-allow-origin");
-
-				if (StringUtils.isBlank(accessControlAllowOrigin))
-				{
-					accessControlAllowOrigin = "http://127.0.0.1";
-				}
-
-				routingContext.response().putHeader("Content-Type", "application/json")
-						.putHeader("Access-Control-Allow-Origin", accessControlAllowOrigin)
-						.putHeader("Access-Control-Allow-Methods", "GET,POST,OPTION").putHeader("Access-Control-Max-Age", "3600")
-						.putHeader("Access-Control-Allow-Headers",
-								"Origin,Accept,X-Requested-With,Content-Type,Access-Control-Request-Method,Access-Control-Request-Headers,Authorization")
-						.putHeader("Access-Control-Allow-Credentials", "true").end((String) result);
-			}
-		} else
-		{
-			try (InputStream is = new FileInputStream(new File("./html/swagger/swagger.json"));)
-			{
-
-				String swaggerConf = IOUtils.toString(is, StandardCharsets.UTF_8);
-
-				JsonObject swagger = new JsonObject(swaggerConf);
-
-				routingContext.put("swagger", swagger);
-			} catch (IOException e)
-			{
-				log.error(e.getMessage());
-			}
-
-			routingContext.next();
+			log.debug("Cache({}) is added.", identifier);
 		}
 	}
 }

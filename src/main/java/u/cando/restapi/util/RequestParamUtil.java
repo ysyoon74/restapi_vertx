@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.annotation.Nullable;
+
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -70,13 +72,36 @@ public class RequestParamUtil
 		return params;
 	}
 
-	private static MultiMap fetchParameter(MultiMap params)
+	private static MultiMap fetchParameter(MultiMap params, @Nullable String bodyString)
 	{
 		if (params == null)
 		{
 			return MultiMap.caseInsensitiveMultiMap();
 		}
 
+		if (StringUtils.isNotBlank(bodyString))
+		{
+			log.debug("Body String: {}", bodyString);
+			
+			try
+			{
+				@SuppressWarnings("unchecked")
+				Map<String, String> bodyMap = new GsonBuilder().setLenient().create().fromJson(bodyString, HashMap.class);
+
+				if (bodyMap != null && !bodyMap.isEmpty())
+				{
+					for (Entry<String, String> oneEntry : bodyMap.entrySet())
+					{
+						params.add(oneEntry.getKey(), oneEntry.getValue());
+					}
+				}
+			} catch (JsonSyntaxException e)
+			{
+				// JSON 형식이 아닐경우 해당내용 저장
+				params.add("body", bodyString);
+			}
+		}
+		
 		return params;
 	}
 
@@ -91,25 +116,25 @@ public class RequestParamUtil
 	public static String generateIdentifier(RoutingContext routingContext)
 	{
 		String identifier = "";
-		
+
 		MultiMap parameters = getValidParameters(routingContext);
-		
+
 		StringBuilder sb = new StringBuilder();
 
 		Map<String, String> tempMap = new HashMap<>();
-		
+
 		for (Entry<String, String> oneEntry : parameters.entries())
 		{
 			if (oneEntry.getKey().equalsIgnoreCase("requestId"))
 			{
 				continue;
 			}
-			
+
 			tempMap.put(oneEntry.getKey(), oneEntry.getValue());
 		}
-		
+
 		Object[] mapKeys = tempMap.keySet().toArray();
-		
+
 		Arrays.sort(mapKeys);
 
 		for (Entry<String, String> oneEntry : tempMap.entrySet())
@@ -118,14 +143,14 @@ public class RequestParamUtil
 			{
 				sb.append('&');
 			}
-			
+
 			sb.append(oneEntry.getKey());
 			sb.append('=');
 			sb.append(oneEntry.getValue());
 		}
-		
+
 		identifier = Hashing.sha256().hashString(sb.toString(), StandardCharsets.UTF_8).toString();
-		
+
 		if (log.isDebugEnabled())
 		{
 			log.debug("Cache Key is {}", identifier);
@@ -193,19 +218,10 @@ public class RequestParamUtil
 	 */
 	public static MultiMap getValidParameters(RoutingContext routingContext)
 	{
-		MultiMap params = fetchParameter(routingContext.request().params());
+		MultiMap params = fetchParameter(routingContext.request().params(), routingContext.getBodyAsString("UTF-8"));
 
 		if (!routingContext.request().method().name().equalsIgnoreCase("GET"))
 		{
-			String bodyString = routingContext.getBodyAsString("UTF-8");
-
-			log.debug("Body String: {}", bodyString);
-
-			if (params == null)
-			{
-				params = MultiMap.caseInsensitiveMultiMap();
-			}
-
 			HttpServerRequest request = routingContext.request();
 
 			MultiMap formMap = request.formAttributes();
@@ -213,27 +229,6 @@ public class RequestParamUtil
 			for (Entry<String, String> oneEntry : formMap.entries())
 			{
 				params.add(oneEntry.getKey(), oneEntry.getValue());
-			}
-
-			if (StringUtils.isNotBlank(bodyString))
-			{
-				try
-				{
-					@SuppressWarnings("unchecked")
-					Map<String, String> bodyMap = new GsonBuilder().setLenient().create().fromJson(bodyString, HashMap.class);
-
-					if (bodyMap != null && !bodyMap.isEmpty())
-					{
-						for (Entry<String, String> oneEntry : bodyMap.entrySet())
-						{
-							params.add(oneEntry.getKey(), oneEntry.getValue());
-						}
-					}
-				} catch (JsonSyntaxException e)
-				{
-					// JSON 형식이 아닐경우 해당내용 저장
-					params.add("body", bodyString);
-				}
 			}
 		}
 

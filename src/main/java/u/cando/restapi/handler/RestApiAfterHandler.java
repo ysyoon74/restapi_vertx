@@ -27,23 +27,44 @@ import u.cando.restapi.util.RequestParamUtil;
 @Slf4j
 public class RestApiAfterHandler implements Handler<RoutingContext>
 {
-	private final JsonObject config;
-
-	private static final String REQUEST_PARAM_ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods";
+	private static final String ALLOW_HEADERS = "Origin,Accept,X-Requested-With,Content-Type,Access-Control-Request-Method,Access-Control-Request-Headers,Authorization";
 
 	private static final String ALLOW_METHODS = "GET,POST,OPTION";
 
-	private static final String ALLOW_HEADERS = "Origin,Accept,X-Requested-With,Content-Type,Access-Control-Request-Method,Access-Control-Request-Headers,Authorization";
+	private static final String REQUEST_PARAM_ACCESS_CONTROL_ALLOW_HEADES = "Access-Control-Allow-Headers";
+
+	private static final String REQUEST_PARAM_ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods";
 
 	private static final String REQUEST_PARAM_ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin";
 
 	private static final String REQUEST_PARAM_ACCESS_CONTROL_MAX_AGE = "Access-Control-Max-Age";
 
-	private static final String REQUEST_PARAM_ACCESS_CONTROL_ALLOW_HEADES = "Access-Control-Allow-Headers";
+	private final JsonObject config;
 
 	public RestApiAfterHandler(JsonObject config)
 	{
 		this.config = config;
+	}
+
+	/**
+	 * 캐시에서 정보 가져오기
+	 * 
+	 * @param identifier
+	 * @param instance
+	 * @return
+	 */
+	private Object fetchFromCache(String identifier)
+	{
+		HazelcastInstance instance = Hazelcast.getHazelcastInstanceByName(RestApiConstants.CACHE_INSTANCE_NAME);
+
+		if (Boolean.TRUE.equals(config.getBoolean(RestApiConstants.CONFIG_USE_CACHE, true)) && instance != null)
+		{
+			Map<String, Object> cachedMap = instance.getMap(RestApiConstants.CACHE_MAP_NAME);
+
+			return cachedMap.get(identifier);
+		}
+
+		return null;
 	}
 
 	@Override
@@ -51,30 +72,13 @@ public class RestApiAfterHandler implements Handler<RoutingContext>
 	{
 		String identifier = RequestParamUtil.generateIdentifier(routingContext);
 
-		HazelcastInstance instance = Hazelcast.getHazelcastInstanceByName(RestApiConstants.CACHE_INSTANCE_NAME);
-
-		Object result = null;
-
-		if (Boolean.TRUE.equals(config.getBoolean(RestApiConstants.CONFIG_USE_CACHE, true)) && instance != null)
-		{
-			Map<String, String> cachedMap = instance.getMap(RestApiConstants.CACHE_MAP_NAME);
-
-			result = cachedMap.get(identifier);
-		}
+		Object result = fetchFromCache(identifier);
 
 		if (result == null)
 		{
 			result = routingContext.get(RestApiConstants.RESPONE_RESULT_NAME);
 
-			if (instance != null)
-			{
-				Map<String, String> cachedMap = instance.getMap(RestApiConstants.CACHE_MAP_NAME);
-
-				cachedMap.put(identifier, routingContext.get(RestApiConstants.RESPONE_RESULT_NAME));
-
-				log.debug("Cache({}) is added.", identifier);
-			}
-
+			pushToCache(result, identifier);
 		}
 
 		if (result != null)
@@ -140,6 +144,26 @@ public class RestApiAfterHandler implements Handler<RoutingContext>
 						.putHeader(REQUEST_PARAM_ACCESS_CONTROL_ALLOW_HEADES, ALLOW_HEADERS)
 						.putHeader("Access-Control-Allow-Credentials", "true").end((String) result);
 			}
+		}
+	}
+
+	/**
+	 * 캐시에 저장하기
+	 * 
+	 * @param result
+	 * @param identifier
+	 */
+	private void pushToCache(Object result, String identifier)
+	{
+		HazelcastInstance instance = Hazelcast.getHazelcastInstanceByName(RestApiConstants.CACHE_INSTANCE_NAME);
+
+		if (instance != null && Boolean.TRUE.equals(config.getBoolean(RestApiConstants.CONFIG_USE_CACHE, true)))
+		{
+			Map<String, Object> cachedMap = instance.getMap(RestApiConstants.CACHE_MAP_NAME);
+
+			cachedMap.put(identifier, result);
+
+			log.debug("Cache({}) is added.", identifier);
 		}
 	}
 }
