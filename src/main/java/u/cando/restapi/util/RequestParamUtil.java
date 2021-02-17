@@ -7,8 +7,10 @@ import java.util.Map.Entry;
 
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.RegExUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 
 import io.vertx.core.MultiMap;
@@ -61,6 +63,16 @@ public class RequestParamUtil
 		} catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e)
 		{
 			log.error("파라미터 변환을 하지 못했습니다: {}", e.getMessage());
+		}
+
+		return params;
+	}
+
+	private static MultiMap fetchParameter(MultiMap params)
+	{
+		if (params == null)
+		{
+			return MultiMap.caseInsensitiveMultiMap();
 		}
 
 		return params;
@@ -152,11 +164,13 @@ public class RequestParamUtil
 	 */
 	public static MultiMap getValidParameters(RoutingContext routingContext)
 	{
-		MultiMap params = routingContext.request().params();
+		MultiMap params = fetchParameter(routingContext.request().params());
 
 		if (!routingContext.request().method().name().equalsIgnoreCase("GET"))
 		{
-			log.debug("Body String: {}", routingContext.getBodyAsString("UTF-8"));
+			String bodyString = routingContext.getBodyAsString("UTF-8");
+
+			log.debug("Body String: {}", bodyString);
 
 			if (params == null)
 			{
@@ -164,14 +178,32 @@ public class RequestParamUtil
 			}
 
 			HttpServerRequest request = routingContext.request();
-			
+
 			MultiMap formMap = request.formAttributes();
-			
-			if (!formMap.isEmpty())
+
+			for (Entry<String, String> oneEntry : formMap.entries())
 			{
-				for (Entry<String, String> oneEntry : formMap.entries())
+				params.add(oneEntry.getKey(), oneEntry.getValue());
+			}
+
+			if (StringUtils.isNotBlank(bodyString))
+			{
+				try
 				{
-					params.add(oneEntry.getKey(), oneEntry.getValue());
+					@SuppressWarnings("unchecked")
+					Map<String, String> bodyMap = new GsonBuilder().setLenient().create().fromJson(bodyString, HashMap.class);
+
+					if (bodyMap != null && !bodyMap.isEmpty())
+					{
+						for (Entry<String, String> oneEntry : bodyMap.entrySet())
+						{
+							params.add(oneEntry.getKey(), oneEntry.getValue());
+						}
+					}
+				} catch (JsonSyntaxException e)
+				{
+					// JSON 형식이 아닐경우 해당내용 저장
+					params.add("body", bodyString);
 				}
 			}
 		}
