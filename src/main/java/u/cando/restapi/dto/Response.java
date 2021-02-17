@@ -19,19 +19,6 @@ import u.cando.restapi.RestApiConstants;
 @Getter
 public class Response
 {
-	public Response()
-	{
-		super();
-	}
-
-	public Response(Map<String, String> parameters)
-	{
-		this.useJsonp = BooleanUtils.toBooleanObject(parameters.get(RestApiConstants.PARAMETER_USE_JSONP));
-		
-		this.callback = parameters.get(RestApiConstants.PARAMETER_CALLBACK);
-		this.requestId = parameters.get(RestApiConstants.PARAMETER_REQUEST_ID);
-	}
-
 	/**
 	 * API 오류 발생시 사용
 	 */
@@ -41,17 +28,17 @@ public class Response
 	 * JSONP 방식을 사용할 경우 callback 함수명
 	 */
 	private String callback;
-	
-	/**
-	 * 호출 서버 아이피
-	 */
-	private String remoteAddress;
 
 	/**
 	 * 수행시간
 	 */
 	private Long processTime = 0L;
 
+	/**
+	 * 호출 서버 아이피
+	 */
+	private String remoteAddress;
+	
 	/**
 	 * 요청 고유번호(UUID 사용)
 	 */
@@ -86,4 +73,17 @@ public class Response
 	 * 결과값 캐쉬되었는지 여부
 	 */
 	private Boolean valueCached= Boolean.FALSE;
+
+	public Response()
+	{
+		super();
+	}
+
+	public Response(Map<String, String> parameters)
+	{
+		this.useJsonp = BooleanUtils.toBooleanObject(parameters.get(RestApiConstants.PARAMETER_USE_JSONP));
+		
+		this.callback = parameters.get(RestApiConstants.PARAMETER_CALLBACK);
+		this.requestId = parameters.get(RestApiConstants.PARAMETER_REQUEST_ID);
+	}
 }
