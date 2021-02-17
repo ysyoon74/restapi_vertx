@@ -36,6 +36,8 @@ class EmbeddedRestApiServerTest
 
         System.out.println("Customer with key 1: "+ mapCustomers.get(1));
         System.out.println("Map Size:" + mapCustomers.size());
+        
+        assertTrue(true);
 	}
 	
 	@Test
