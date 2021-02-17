@@ -171,6 +171,9 @@ public class EmbeddedRestApiServer
 		// API 문서(Swagger 사용)
 		router.route("/assets/*").handler(StaticHandler.create("./html/swagger"));
 
+		//관리용 페이지 구성용
+		router.route("/manager/*").handler(StaticHandler.create("./html/manager"));
+
 		// 관리자 화면
 		router.route("/metrics").handler(PrometheusScrapingHandler.create());
 
