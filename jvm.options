@@ -5,6 +5,8 @@
 -Dhazelcast.max.no.heartbeat.seconds=5
 -Dvertx.disableDnsResolver=true
 -Dio.netty.tryReflectionSetAccessible=true
+-Dfile.encoding=UTF-8
+
 # 'cannot access class jdk.internal.misc.Unsafe' 오류 메시지가 나올 경우. 주로 JDK 9이상일 경우 발생.
 #--add-opens java.base/jdk.internal.misc=ALL-UNNAMED
 
