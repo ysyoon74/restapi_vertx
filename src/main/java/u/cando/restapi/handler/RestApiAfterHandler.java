@@ -49,7 +49,7 @@ public class RestApiAfterHandler implements Handler<RoutingContext>
 	@Override
 	public void handle(RoutingContext routingContext)
 	{
-		String identifier = RequestParamUtil.generateIndetifier(routingContext);
+		String identifier = RequestParamUtil.generateIdentifier(routingContext);
 
 		HazelcastInstance instance = Hazelcast.getHazelcastInstanceByName(RestApiConstants.CACHE_INSTANCE_NAME);
 

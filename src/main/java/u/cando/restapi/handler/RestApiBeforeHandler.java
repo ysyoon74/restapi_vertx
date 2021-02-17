@@ -91,7 +91,7 @@ public class RestApiBeforeHandler implements Handler<RoutingContext>
 			log.debug("config : {}", config.toString());
 		}
 
-		String identifier = RequestParamUtil.generateIndetifier(routingContext);
+		String identifier = RequestParamUtil.generateIdentifier(routingContext);
 
 		HazelcastInstance instance = Hazelcast.getHazelcastInstanceByName(RestApiConstants.CACHE_INSTANCE_NAME);
 
