@@ -1,14 +1,16 @@
 package u.cando.restapi.util;
 
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.commons.beanutils.PropertyUtils;
-import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import com.google.common.hash.Hashing;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
@@ -86,23 +88,50 @@ public class RequestParamUtil
 	 *            컨텍스트
 	 * @return 캐시키
 	 */
-	public static String generateIndetifier(RoutingContext routingContext)
+	public static String generateIdentifier(RoutingContext routingContext)
 	{
+		String identifier = "";
+		
+		MultiMap parameters = getValidParameters(routingContext);
+		
 		StringBuilder sb = new StringBuilder();
 
-		if (routingContext.request().method().toString().equalsIgnoreCase("GET"))
+		Map<String, String> tempMap = new HashMap<>();
+		
+		for (Entry<String, String> oneEntry : parameters.entries())
 		{
-			sb.append(routingContext.request().uri());
-		} else
+			if (oneEntry.getKey().equalsIgnoreCase("requestId"))
+			{
+				continue;
+			}
+			
+			tempMap.put(oneEntry.getKey(), oneEntry.getValue());
+		}
+		
+		Object[] mapKeys = tempMap.keySet().toArray();
+		
+		Arrays.sort(mapKeys);
+
+		for (Entry<String, String> oneEntry : tempMap.entrySet())
 		{
-			sb.append(routingContext.request().path());
-			sb.append("?");
-			sb.append(routingContext.request().query());
+			if (sb.length() > 0)
+			{
+				sb.append('&');
+			}
+			
+			sb.append(oneEntry.getKey());
+			sb.append('=');
+			sb.append(oneEntry.getValue());
+		}
+		
+		identifier = Hashing.sha256().hashString(sb.toString(), StandardCharsets.UTF_8).toString();
+		
+		if (log.isDebugEnabled())
+		{
+			log.debug("Cache Key is {}", identifier);
 		}
 
-		String tempId = sb.toString();
-
-		return RegExUtils.removeAll(tempId, "requestId=.{0,37}&");
+		return identifier;
 	}
 
 	/**
