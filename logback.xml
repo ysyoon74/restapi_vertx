@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true" scanPeriod="60 seconds">
-	<property name="LOGS_ABSOLUTE_PATH" value="./logs" />
+	<contextName>myApp</contextName>
+	<property name="LOGS_ABSOLUTE_PATH" value="${log.path}" />
 	<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
 			<!-- rollover daily -->
@@ -16,7 +17,7 @@
 	</appender>
 	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
 		<encoder>
-			<pattern>[%d][%-5p][%t][%C{1}:%L] %m%n</pattern>
+			<pattern>[%d][%contextName][%-5p][%t][%C{1}:%L] %m%n</pattern>
 		</encoder>
 	</appender>
 

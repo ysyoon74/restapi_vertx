@@ -1,4 +1,4 @@
-FROM ubuntu1804_openjdk8:20210210
+FROM ysyoon74/ubuntu1804_openjdk8
 
 LABEL maintainer="ysyun@saltlux.com"
 

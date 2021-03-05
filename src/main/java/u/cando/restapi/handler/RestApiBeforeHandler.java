@@ -37,6 +37,18 @@ import u.cando.restapi.util.RequestParamUtil;
 @Slf4j
 public class RestApiBeforeHandler implements Handler<RoutingContext>
 {
+	private static final String ALLOW_HEADERS = "Origin,Accept,X-Requested-With,Content-Type,Access-Control-Request-Method,Access-Control-Request-Headers,Authorization";
+
+	private static final String ALLOW_METHODS = "GET,POST,PUT,DELETE";
+
+	private static final String REQUEST_PARAM_ACCESS_CONTROL_ALLOW_HEADES = "Access-Control-Allow-Headers";
+
+	private static final String REQUEST_PARAM_ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods";
+
+	private static final String REQUEST_PARAM_ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin";
+
+	private static final String REQUEST_PARAM_ACCESS_CONTROL_MAX_AGE = "Access-Control-Max-Age";
+
 	private final JsonObject config;
 
 	public RestApiBeforeHandler(JsonObject config)
@@ -105,20 +117,20 @@ public class RestApiBeforeHandler implements Handler<RoutingContext>
 
 			if (Boolean.TRUE.equals(config.getBoolean(RestApiConstants.CONFIG_DEV_MODE, false)))
 			{
-				routingContext.response().putHeader("Content-Type", "application/json").putHeader("Access-Control-Allow-Origin", "*")
-						.putHeader("Access-Control-Allow-Methods", "GET,POST,OPTION").putHeader("Access-Control-Max-Age", "3600")
-						.putHeader("Access-Control-Allow-Headers",
-								"Origin,Accept,X-Requested-With,Content-Type,Access-Control-Request-Method,Access-Control-Request-Headers,Authorization")
-						.end((String) result);
+				routingContext.response().putHeader("Content-Type", "application/json")
+						.putHeader(REQUEST_PARAM_ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+						.putHeader(REQUEST_PARAM_ACCESS_CONTROL_ALLOW_METHODS, ALLOW_METHODS)
+						.putHeader(REQUEST_PARAM_ACCESS_CONTROL_MAX_AGE, "3600")
+						.putHeader(REQUEST_PARAM_ACCESS_CONTROL_ALLOW_HEADES, ALLOW_HEADERS).end((String) result);
 			} else
 			{
 				String accessControlAllowOrigin = config.getString("access-control-allow-origin", "http://127.0.0.1");
 
 				routingContext.response().putHeader("Content-Type", "application/json")
-						.putHeader("Access-Control-Allow-Origin", accessControlAllowOrigin)
-						.putHeader("Access-Control-Allow-Methods", "GET,POST,OPTION").putHeader("Access-Control-Max-Age", "3600")
-						.putHeader("Access-Control-Allow-Headers",
-								"Origin,Accept,X-Requested-With,Content-Type,Access-Control-Request-Method,Access-Control-Request-Headers,Authorization")
+						.putHeader(REQUEST_PARAM_ACCESS_CONTROL_ALLOW_ORIGIN, accessControlAllowOrigin)
+						.putHeader(REQUEST_PARAM_ACCESS_CONTROL_ALLOW_METHODS, ALLOW_METHODS)
+						.putHeader(REQUEST_PARAM_ACCESS_CONTROL_MAX_AGE, "3600")
+						.putHeader(REQUEST_PARAM_ACCESS_CONTROL_ALLOW_HEADES, ALLOW_HEADERS)
 						.putHeader("Access-Control-Allow-Credentials", "true").end((String) result);
 			}
 		} else

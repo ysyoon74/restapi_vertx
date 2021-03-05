@@ -29,7 +29,7 @@ public class RestApiAfterHandler implements Handler<RoutingContext>
 {
 	private static final String ALLOW_HEADERS = "Origin,Accept,X-Requested-With,Content-Type,Access-Control-Request-Method,Access-Control-Request-Headers,Authorization";
 
-	private static final String ALLOW_METHODS = "GET,POST,OPTION";
+	private static final String ALLOW_METHODS = "GET,POST,PUT,DELETE";
 
 	private static final String REQUEST_PARAM_ACCESS_CONTROL_ALLOW_HEADES = "Access-Control-Allow-Headers";
 
